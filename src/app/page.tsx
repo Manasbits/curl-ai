@@ -1,103 +1,101 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react';
+import { RefreshCcw, Star } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 
-export default function Home() {
+export default function WorkoutPage() {
+  const [pinnedWorkouts] = useState([
+    {
+      title: 'Push',
+      description: 'Warm up, Bench press(Barbell), Incline Bench Press (Dumbell), Incline...'
+    }
+  ]);
+
+  const [history] = useState([
+    {
+      date: '13/02/2025',
+      description: 'Warm up, Bent Over Row (Barbell), Lat Pulldown (Cable), Bicep Curl (Dumbell)...'
+    }
+  ]);
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col min-h-screen bg-[#F9FAFB] py-10 drop-shadow-black">
+      {/* Header */}
+      <div className="relative flex items-center p-4 border-b bg-white shadow-sm drop-shadow-black">
+      <h1 className="absolute left-1/2 transform -translate-x-1/2 text-lg font-sans font-regular">
+        Workout
+      </h1>
+      <RefreshCcw className="ml-auto w-5 h-5 text-gray-600" />
+    </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Quick Start Section */}
+      <div className="p-6">
+        <h2 className="text-3xl mb-4 font-sans font-semibold">Quick Start.</h2>
+        <div className="flex flex-col gap-3 mb-6">
+          <Button className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold ">Plan a Workout</Button>
+          <Button className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold">Explore Workouts</Button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Pinned Workouts */}
+        <div className="mb-2">
+          <div className="flex justify-between items-center mb-2 w-full">
+            <span className="text-sm font-semibold text-[#111827] font-sans">
+              Pinned Workouts
+            </span>
+            <Star className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          </div>
+          {pinnedWorkouts.map((workout, index) => (
+            <Card key={index} className="mb-4 shadow-sm drop-shadow-2xl">
+              <CardContent className="p-4">
+                <h3 className="text-lg mb-1 font-sans font-bold">{workout.title}</h3>
+                <p className="text-sm text-gray-500 mb-3 line-clamp-1">{workout.description}</p>
+                <Button className="bg-blue-600 text-white w-full py-2 rounded-lg">
+                  Start Routine
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+
+
+        {/* History */}
+        <div>
+          <div className="flex items-center mb-2">
+            <span className="text-sm font-sans font-semibold text-[#111827]">History</span>
+          </div>
+          {history.map((item, index) => (
+            <Card key={index} className="mb-4 mb-4 shadow-sm drop-shadow-2xl ">
+              <CardContent className="p-4">
+                <h3 className="text-lg mb-1 font-sans font-bold">{item.date}</h3>
+                <p className="text-sm text-gray-500 mb-3 line-clamp-1">{item.description}</p>
+                <Button className="bg-blue-600 text-white w-full py-2 rounded-lg">View Routine</Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around py-3">
+        <button className="flex flex-col items-center text-xs">
+          <span>🏠</span>
+          <span>Home</span>
+        </button>
+        <button className="flex flex-col items-center text-xs">
+          <span>📊</span>
+          <span>Activity</span>
+        </button>
+        <button className="flex flex-col items-center text-xs">
+          <span>🤖</span>
+          <span>AI</span>
+        </button>
+        <button className="flex flex-col items-center text-xs">
+          <span>👤</span>
+          <span>Profile</span>
+        </button>
+      </nav>
     </div>
   );
 }
