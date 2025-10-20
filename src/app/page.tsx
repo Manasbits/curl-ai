@@ -17,7 +17,7 @@ export default function SignInPage() {
         // Initialize user data in Firestore
         await initializeUserInFirestore(user);
         // Redirect to home page
-        router.push('/main/home');
+        router.push('/home');
       }
     });
 
