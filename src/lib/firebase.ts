@@ -19,7 +19,7 @@ const firebaseConfig = {
 
 console.log('Firebase Config (client):', firebaseConfig);
 
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+export const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 

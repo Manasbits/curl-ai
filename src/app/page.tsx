@@ -3,9 +3,26 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import ProviderIcon from '@/components/ui/provider-icon';
-import { signInWithEmail, signInWithGoogle, signUpWithEmail } from '@/lib/firebase';
+import { signInWithEmail, signInWithGoogle, signUpWithEmail, auth } from '@/lib/firebase';
+import { initializeUserInFirestore } from '@/lib/firestore';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function SignInPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        // Initialize user data in Firestore
+        await initializeUserInFirestore(user);
+        // Redirect to home page
+        router.push('/main/home');
+      }
+    });
+
+    return () => unsubscribe();
+  }, [router]);
   const [email, setEmail] = useState('');
   // password is optional for initial sign-in (magic link / passwordless flow)
   const [password] = useState('');
