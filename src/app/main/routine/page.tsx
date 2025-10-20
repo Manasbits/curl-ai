@@ -1,20 +1,67 @@
 'use client'
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Clock, Plus, Trash2, Home, TrendingUp, Bot, User, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
+interface Exercise {
+  id: number;
+  name: string;
+  type: 'Reps' | 'Sets';
+  category?: string;
+}
+
 export default function PlanRoutinePage() {
-  const [exercises, setExercises] = useState([
-    { id: 1, name: 'Exercise name 1', type: 'Reps' }
-  ]);
+  const router = useRouter();
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+
+  // Load exercises from localStorage on mount and when returning to page
+  useEffect(() => {
+    const loadExercises = () => {
+      const storedExercises = localStorage.getItem('routineExercises');
+      if (storedExercises) {
+        const parsed = JSON.parse(storedExercises);
+        const formattedExercises = parsed.map((ex: any, index: number) => ({
+          id: Date.now() + index, // Generate unique IDs
+          name: ex.name,
+          type: 'Reps' as const,
+          category: ex.category
+        }));
+        setExercises(formattedExercises);
+        // Clear the storage after loading
+        localStorage.removeItem('routineExercises');
+      }
+    };
+
+    loadExercises();
+
+    // Listen for storage events (when localStorage is updated)
+    window.addEventListener('storage', loadExercises);
+    
+    // Also check when window gains focus (user returns to page)
+    window.addEventListener('focus', loadExercises);
+
+    return () => {
+      window.removeEventListener('storage', loadExercises);
+      window.removeEventListener('focus', loadExercises);
+    };
+  }, []);
 
   const addExercise = () => {
-    setExercises([...exercises, { 
-      id: exercises.length + 1, 
-      name: `Exercise name ${exercises.length + 1}`,
-      type: 'Reps'
-    }]);
+    // Navigate to exercises list page
+    router.push('/main/exercises_list');
+  };
+
+  const startWorkout = () => {
+    // Save exercises to localStorage for workout log
+    if (exercises.length > 0) {
+      localStorage.setItem('workoutExercises', JSON.stringify(exercises));
+      // Navigate to workout log page
+      router.push('/main/workout_log');
+    } else {
+      alert('Please add exercises before starting workout');
+    }
   };
 
   const removeExercise = (id: number) => {
@@ -79,39 +126,48 @@ export default function PlanRoutinePage() {
         <hr className="border-gray-300 mb-6" />
 
         {/* Exercise List */}
-        {exercises.map((exercise, index) => (
-          <div key={exercise.id} className="mb-4 flex items-center gap-3">
-            <span className="text-cyan-500 font-semibold text-sm">{exercise.name}</span>
-            <div className="flex gap-2 ml-auto">
-              <button
-                onClick={() => toggleType(exercise.id)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium ${
-                  exercise.type === 'Reps' 
-                    ? 'bg-[#1F2937] text-white' 
-                    : 'bg-gray-200 text-gray-700'
-                }`}
-              >
-                Reps
-              </button>
-              <button
-                onClick={() => toggleType(exercise.id)}
-                className={`px-4 py-1.5 rounded-lg text-sm font-medium ${
-                  exercise.type === 'Sets' 
-                    ? 'bg-[#1F2937] text-white' 
-                    : 'bg-gray-200 text-gray-700'
-                }`}
-              >
-                Sets
-              </button>
-              <button
-                onClick={() => removeExercise(exercise.id)}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-500"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+        {exercises.length > 0 ? (
+          exercises.map((exercise) => (
+            <div key={exercise.id} className="mb-4 flex items-center gap-3">
+              <div className="flex-1">
+                <span className="text-cyan-500 font-semibold text-sm">{exercise.name}</span>
+                {exercise.category && (
+                  <p className="text-gray-400 text-xs mt-1">{exercise.category}</p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggleType(exercise.id)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium ${
+                    exercise.type === 'Reps' 
+                      ? 'bg-[#1F2937] text-white' 
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  Reps
+                </button>
+                <button
+                  onClick={() => toggleType(exercise.id)}
+                  className={`px-4 py-1.5 rounded-lg text-sm font-medium ${
+                    exercise.type === 'Sets' 
+                      ? 'bg-[#1F2937] text-white' 
+                      : 'bg-gray-200 text-gray-700'
+                  }`}
+                >
+                  Sets
+                </button>
+                <button
+                  onClick={() => removeExercise(exercise.id)}
+                  className="flex items-center justify-center w-8 h-8 rounded-lg bg-red-100 text-red-500"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        ) : (
+          <p className="text-gray-400 text-sm text-center my-4">No exercises added yet</p>
+        )}
 
         {/* Add Exercise Section */}
         <div className="text-center my-6">
@@ -135,7 +191,10 @@ export default function PlanRoutinePage() {
           </Button>
         </div>
 
-        <Button className="w-full bg-cyan-400 hover:bg-cyan-500 text-white py-4 rounded-xl text-base font-semibold">
+        <Button 
+          onClick={startWorkout}
+          className="w-full bg-cyan-400 hover:bg-cyan-500 text-white py-4 rounded-xl text-base font-semibold"
+        >
           Start Workout
         </Button>
       </div>
