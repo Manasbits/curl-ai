@@ -22,15 +22,34 @@ export default function WorkoutPage() {
   };
 
   useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!mounted) return;
       if (user) {
-        const profile = await getUserProfile(user.uid);
-        setUserProfile(profile);
+        try {
+          const profile = await getUserProfile(user.uid);
+          if (!mounted) return;
+          setUserProfile(profile);
+        } catch (err) {
+          console.error('Failed to load profile', err);
+          if (!mounted) return;
+          setUserProfile(null);
+        } finally {
+          if (mounted) setLoading(false);
+        }
+      } else {
+        // Not signed in — clear profile and stop loading
+        setUserProfile(null);
         setLoading(false);
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const [pinnedWorkouts] = useState([
@@ -73,9 +92,7 @@ export default function WorkoutPage() {
               Level: {userProfile?.experience_level || 'Not set'} • 
               Goal: {userProfile?.goal || 'Not set'}
             </p>
-            {userProfile?.streak_days ? (
-              <p className="text-sm text-green-600 mt-1">🔥 {userProfile.streak_days} day streak!</p>
-            ) : null}
+            {/* optional: add streak_days to UserProfile if you track it */}
           </div>
 
           {/* Quick Start Section */}
@@ -127,7 +144,7 @@ export default function WorkoutPage() {
       )}
 
       {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around py-3">
+  <nav className="fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around py-3">
         <button className="flex flex-col items-center text-xs">
           <span>🏠</span>
           <span>Home</span>
@@ -140,7 +157,7 @@ export default function WorkoutPage() {
           <span>🤖</span>
           <span>AI</span>
         </button>
-        <button className="flex flex-col items-center text-xs">
+        <button onClick={() => router.push('/profile')} className="flex flex-col items-center text-xs">
           <span>👤</span>
           <span>Profile</span>
         </button>

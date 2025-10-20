@@ -103,3 +103,9 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
   const userDoc = await getDoc(doc(db, 'users', userId));
   return userDoc.exists() ? (userDoc.data() as UserProfile) : null;
 }
+
+// Merge updates into the user profile document
+export async function updateUserProfile(userId: string, updates: Partial<UserProfile>) {
+  const userDocRef = doc(db, 'users', userId);
+  await setDoc(userDocRef, updates, { merge: true });
+}

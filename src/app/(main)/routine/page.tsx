@@ -50,7 +50,7 @@ export default function PlanRoutinePage() {
 
   const addExercise = () => {
     // Navigate to exercises list page
-    router.push('/main/exercises_list');
+    router.push('/exercises_list');
   };
 
   const startWorkout = () => {
@@ -58,7 +58,7 @@ export default function PlanRoutinePage() {
     if (exercises.length > 0) {
       localStorage.setItem('workoutExercises', JSON.stringify(exercises));
       // Navigate to workout log page
-      router.push('/main/workout_log');
+      router.push('/workout_log');
     } else {
       alert('Please add exercises before starting workout');
     }

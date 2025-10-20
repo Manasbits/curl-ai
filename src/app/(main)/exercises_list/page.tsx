@@ -58,7 +58,7 @@ export default function ExercisesListPage() {
     localStorage.setItem('routineExercises', JSON.stringify(updatedExercises));
     
     // Navigate back to routine page
-    router.push('/main/routine');
+    router.push('/routine');
   };
 
   return (
