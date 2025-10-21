@@ -1,15 +1,13 @@
-'use client'
-import { useState, useEffect } from 'react';
+ 'use client'
 import { LogOut, Star } from 'lucide-react';
-import { auth, signOut } from '@/lib/firebase';
-import { getUserProfile, type UserProfile } from '@/lib/firestore';
+import { signOut } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { useAuth } from '@/context/auth-context';
 
 export default function WorkoutPage() {
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { profile: userProfile, loading } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -21,50 +19,21 @@ export default function WorkoutPage() {
     }
   };
 
-  useEffect(() => {
-    let mounted = true;
-    setLoading(true);
+  // auth/profile are provided by AuthProvider via useAuth
 
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (!mounted) return;
-      if (user) {
-        try {
-          const profile = await getUserProfile(user.uid);
-          if (!mounted) return;
-          setUserProfile(profile);
-        } catch (err) {
-          console.error('Failed to load profile', err);
-          if (!mounted) return;
-          setUserProfile(null);
-        } finally {
-          if (mounted) setLoading(false);
-        }
-      } else {
-        // Not signed in — clear profile and stop loading
-        setUserProfile(null);
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      unsubscribe();
-    };
-  }, []);
-
-  const [pinnedWorkouts] = useState([
+  const pinnedWorkouts: { title: string; description: string }[] = [
     {
       title: 'Push',
       description: 'Warm up, Bench press(Barbell), Incline Bench Press (Dumbell), Incline...'
     }
-  ]);
+  ];
 
-  const [history] = useState([
+  const history: { date: string; description: string }[] = [
     {
       date: '13/02/2025',
       description: 'Warm up, Bent Over Row (Barbell), Lat Pulldown (Cable), Bicep Curl (Dumbell)...'
     }
-  ]);
+  ];
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F9FAFB] py-10 drop-shadow-black">
@@ -99,7 +68,7 @@ export default function WorkoutPage() {
           <div className="p-6">
             <h2 className="text-3xl mb-4 font-sans font-semibold">Quick Start.</h2>
             <div className="flex flex-col gap-3 mb-6">
-              <Button className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold ">Plan a Workout</Button>
+              <Button onClick={() => router.push('/routine')} className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold ">Plan a Workout</Button>
               <Button className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold">Explore Workouts</Button>
             </div>
 

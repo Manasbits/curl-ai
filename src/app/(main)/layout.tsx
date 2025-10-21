@@ -1,29 +1,18 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import React from 'react';
+import { AuthProvider } from '@/context/auth-context';
+import QueryProvider from '@/components/query-provider';
+import { ErrorBoundary } from '@/components/error-boundary';
 
-export default function MainLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const router = useRouter();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (!user) {
-        router.push('/');
-      }
-    });
-
-    return () => unsubscribe();
-  }, [router]);
-
+export default function MainLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {children}
-    </div>
+    <QueryProvider>
+      <ErrorBoundary>
+        <AuthProvider>
+          <div className="min-h-screen bg-gray-50">{children}</div>
+        </AuthProvider>
+      </ErrorBoundary>
+    </QueryProvider>
   );
 }
