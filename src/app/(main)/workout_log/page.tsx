@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+
 import { ChevronDown, Clock, Home, TrendingUp, Bot, User, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -24,7 +24,7 @@ interface WorkoutExercise {
 }
 
 export default function WorkoutLogPage() {
-  const router = useRouter();
+  // const router = useRouter();
   const [workoutStartTime] = useState(Date.now());
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
@@ -34,11 +34,11 @@ export default function WorkoutLogPage() {
     const storedExercises = localStorage.getItem('workoutExercises');
     if (storedExercises) {
       const parsed = JSON.parse(storedExercises);
-      const workoutExercises = parsed.map((ex: any, index: number) => ({
+      const workoutExercises = parsed.map((ex: Partial<WorkoutExercise>, index: number) => ({
         id: index + 1,
-        name: ex.name,
-        type: ex.type || 'Reps',
-        category: ex.category,
+        name: ex.name ?? '',
+        type: ex.type ?? 'Reps',
+        category: ex.category ?? '',
         description: 'Description...',
         timeElapsed: 0,
         sets: [

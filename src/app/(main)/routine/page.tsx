@@ -22,9 +22,9 @@ export default function PlanRoutinePage() {
       const storedExercises = localStorage.getItem('routineExercises');
       if (storedExercises) {
         const parsed = JSON.parse(storedExercises);
-        const formattedExercises = parsed.map((ex: any, index: number) => ({
+        const formattedExercises = parsed.map((ex: Partial<Exercise>, index: number) => ({
           id: Date.now() + index, // Generate unique IDs
-          name: ex.name,
+          name: ex.name ?? '',
           type: 'Reps' as const,
           category: ex.category
         }));
