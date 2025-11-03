@@ -176,7 +176,7 @@ export default function WorkoutLogPage() {
               }}
               disabled={!workoutId || completeWorkout.isPending}
               className="bg-cyan-400 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg text-sm font-medium"
-            >
+>
               {completeWorkout.isPending ? 'Saving...' : 'Finish'}
             </Button>
           </div>
