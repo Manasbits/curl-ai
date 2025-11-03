@@ -6,10 +6,16 @@ import { auth } from '@/lib/firebase';
 
 import { useProfile } from '@/hooks/use-profile';
 import type { UserProfile } from '@/lib/firestore';
+import { useRoutines } from '@/hooks/use-routines';
+import type { Routine, Workout } from '@/lib/types/workout';
+import { useCompletedWorkouts, useFavoriteWorkouts } from '@/hooks/use-workout-history';
 
 type AuthContextType = {
   user: User | null;
   profile: UserProfile | null;
+  routines: Routine[] | null;
+  completedWorkouts: Workout[] | null;
+  favoriteWorkouts: Workout[] | null;
   loading: boolean;
   error: Error | null;
   refetch: () => Promise<void>;
@@ -29,6 +35,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isRefetching, setIsRefetching] = useState(false);
   const [uid, setUid] = useState<string | null>(null);
   const profileQuery = useProfile(uid || '');
+  const { routines: routinesQuery } = useRoutines(uid || '');
+  const completedQuery = useCompletedWorkouts(uid || '');
+  const favoriteQuery = useFavoriteWorkouts(uid || '');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((u) => {
@@ -46,7 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function refetch() {
     setIsRefetching(true);
     try {
-      await profileQuery.refetch();
+      await Promise.all([
+        profileQuery.refetch(),
+        routinesQuery.refetch(),
+        completedQuery.refetch(),
+        favoriteQuery.refetch()
+      ]);
     } catch (err) {
       setError(err as Error);
     } finally {
@@ -58,9 +72,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     <AuthContext.Provider
       value={{
         user,
-  profile: profileQuery.data ?? null,
-        loading: profileQuery.isLoading || loading,
-        error: error || profileQuery.error || null,
+        profile: profileQuery.data ?? null,
+  routines: routinesQuery.data ?? null,
+  completedWorkouts: completedQuery.data ?? null,
+  favoriteWorkouts: favoriteQuery.data ?? null,
+  loading: profileQuery.isLoading || routinesQuery.isLoading || completedQuery.isLoading || favoriteQuery.isLoading || loading,
+  error: error || profileQuery.error || routinesQuery.error || completedQuery.error || favoriteQuery.error || null,
         refetch,
         isRefetching,
         clearError,
