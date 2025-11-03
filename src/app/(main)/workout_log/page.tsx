@@ -1,7 +1,6 @@
 "use client"
-// Force dynamic rendering to avoid SSR prerender errors for client-only hooks like useSearchParams
-export const dynamic = 'force-dynamic';
-import { useState, useEffect, useRef } from 'react';
+
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, Clock, Home, TrendingUp, Bot, User, Check } from 'lucide-react';
 import { useAuth } from '@/context/auth-context';
@@ -28,7 +27,7 @@ interface WorkoutExercise {
   sets: ExerciseSet[];
 }
 
-export default function WorkoutLogPage() {
+function WorkoutLogContent() {
   const router = useRouter();
   const [workoutStartTime] = useState(Date.now());
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -323,5 +322,13 @@ export default function WorkoutLogPage() {
         </button>
       </nav>
     </div>
+  );
+}
+
+export default function WorkoutLogPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <WorkoutLogContent />
+    </Suspense>
   );
 }
