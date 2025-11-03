@@ -1,8 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react';
-
+import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { ChevronDown, Clock, Home, TrendingUp, Bot, User, Check } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import { useActiveWorkout } from '@/hooks/use-active-workout';
 import { Button } from '@/components/ui/button';
+import { useRouter } from 'next/navigation';
 
 interface ExerciseSet {
   id: number;
@@ -24,33 +27,57 @@ interface WorkoutExercise {
 }
 
 export default function WorkoutLogPage() {
-  // const router = useRouter();
+  const router = useRouter();
   const [workoutStartTime] = useState(Date.now());
   const [currentTime, setCurrentTime] = useState(Date.now());
   const [exercises, setExercises] = useState<WorkoutExercise[]>([]);
 
-  // Load exercises and initialize workout data
+  const searchParams = useSearchParams();
+  const routineParamId = searchParams.get('routine');
+  const routineId = routineParamId || undefined;
+  const { user, routines, loading } = useAuth();
+  const userId = user?.uid || '';
+  const { startWorkout, saveSet, completeWorkout } = useActiveWorkout(userId, routineId);
+  const [workoutId, setWorkoutId] = useState<string | null>(null);
+
+  // Load routine and initialize workout
+  // Set exercises only if not already set
   useEffect(() => {
-    const storedExercises = localStorage.getItem('workoutExercises');
-    if (storedExercises) {
-      const parsed = JSON.parse(storedExercises);
-      const workoutExercises = parsed.map((ex: Partial<WorkoutExercise>, index: number) => ({
-        id: index + 1,
-        name: ex.name ?? '',
-        type: ex.type ?? 'Reps',
-        category: ex.category ?? '',
-        description: 'Description...',
-        timeElapsed: 0,
-        sets: [
-          { id: 1, previous: '20kg x 15', kg: 20, reps: 20, completed: false },
-          { id: 2, previous: '25kg x 15', kg: 30, reps: 15, completed: false },
-          { id: 3, previous: '30kg x 15', kg: 35, reps: 15, completed: false },
-          { id: 4, previous: '40kg x 15', kg: 40, reps: 15, completed: false },
-        ]
-      }));
-      setExercises(workoutExercises);
-    }
-  }, []);
+    if (!routineId || !routines) return;
+    if (exercises.length > 0) return;
+    const routine = routines.find(r => r.id === routineId);
+    if (!routine) return;
+    const workoutExercises: WorkoutExercise[] = routine.exercises.map((ex, index) => ({
+      id: index + 1,
+      name: ex.name,
+      type: 'Reps',
+      category: ex.category,
+      description: `${ex.sets.length} sets`,
+      timeElapsed: 0,
+      sets: ex.sets.map((set, setIndex) => ({
+        id: setIndex + 1,
+        previous: `${set.weight_kg}kg x ${set.reps}`,
+        kg: set.weight_kg,
+        reps: set.reps,
+        completed: false
+      }))
+    }));
+    setExercises(workoutExercises);
+  }, [routineId, routines, exercises.length]);
+
+  // Start the workout in Firestore only if not already started
+  const hasStartedRef = useRef(false);
+  useEffect(() => {
+    if (!routineId || !routines || workoutId || hasStartedRef.current || loading) return;
+    const routine = routines.find(r => r.id === routineId);
+    if (!routine) return;
+    hasStartedRef.current = true;
+    startWorkout.mutate(routine.exercises, {
+      onSuccess: (id) => setWorkoutId(id)
+    });
+    // Only run once per session
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routineId, routines, workoutId, loading]);
 
   // Update timer every second
   useEffect(() => {
@@ -73,9 +100,23 @@ export default function WorkoutLogPage() {
       if (ex.id === exerciseId) {
         return {
           ...ex,
-          sets: ex.sets.map(set => 
-            set.id === setId ? { ...set, completed: !set.completed } : set
-          )
+          sets: ex.sets.map(set => {
+            const newCompleted = !set.completed;
+            if (set.id === setId && workoutId) {
+              // Save the set to Firestore when completed
+              saveSet.mutate({
+                workoutId,
+                exerciseId: exerciseId.toString(),
+                set: {
+                  weight_kg: set.kg,
+                  reps: set.reps,
+                  completed: newCompleted,
+                  saved_at: new Date()
+                }
+              });
+            }
+            return set.id === setId ? { ...set, completed: newCompleted } : set;
+          })
         };
       }
       return ex;
@@ -112,11 +153,29 @@ export default function WorkoutLogPage() {
             <h1 className="text-lg font-semibold">Workout Log</h1>
           </div>
           <div className="flex gap-2">
-            <Button className="bg-[#1F2937] hover:bg-[#111827] text-white px-4 py-2 rounded-lg text-sm">
+            <Button 
+              className="bg-[#1F2937] hover:bg-[#111827] text-white px-4 py-2 rounded-lg text-sm"
+            >
               AI Fix
             </Button>
-            <Button className="bg-cyan-400 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg text-sm font-medium">
-              Finish
+            <Button 
+              onClick={() => {
+                if (workoutId) {
+                  const endTime = new Date();
+                  const durationSeconds = Math.floor((endTime.getTime() - workoutStartTime) / 1000);
+                  completeWorkout.mutate({
+                    workoutId,
+                    endTime,
+                    durationSeconds
+                  }, {
+                    onSuccess: () => router.push('/workout_history')
+                  });
+                }
+              }}
+              disabled={!workoutId || completeWorkout.isPending}
+              className="bg-cyan-400 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg text-sm font-medium"
+            >
+              {completeWorkout.isPending ? 'Saving...' : 'Finish'}
             </Button>
           </div>
         </div>
