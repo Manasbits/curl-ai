@@ -1,4 +1,6 @@
-'use client'
+"use client"
+// Force dynamic rendering to avoid SSR prerender errors for client-only hooks like useSearchParams
+export const dynamic = 'force-dynamic';
 import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, Clock, Home, TrendingUp, Bot, User, Check } from 'lucide-react';
