@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getUserRoutines, toggleRoutineFavorite } from '@/lib/firestore';
+import { getUserRoutines, toggleRoutineFavorite, cloneGlobalRoutineToUser } from '@/lib/firestore';
+import type { GlobalRoutine } from '@/lib/types/schema';
 
 export function useRoutines(userId: string) {
   // Fetch all routines including predefined, custom, and AI generated
@@ -23,8 +24,19 @@ export function useRoutines(userId: string) {
     },
   });
 
+  // Clone a global routine to user's routines
+  const cloneGlobalRoutine = useMutation({
+    mutationFn: async (globalRoutine: GlobalRoutine) => {
+      return cloneGlobalRoutineToUser(userId, globalRoutine);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['routines', userId] });
+    },
+  });
+
   return {
     routines,
     toggleFavorite,
+    cloneGlobalRoutine,
   };
 }

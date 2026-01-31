@@ -1,4 +1,4 @@
- 'use client'
+'use client'
 import { useState, useEffect } from 'react';
 import { auth } from '@/lib/firebase';
 import { type UserProfile } from '@/lib/firestore';
@@ -8,6 +8,8 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/auth-context';
+import { Card } from '@/components/ui/card';
+import { ChevronLeft, Camera, User, Mail, Ruler, Scale, Target, Zap, Save } from 'lucide-react';
 
 export default function ProfilePage() {
   const { profile, loading } = useAuth();
@@ -16,19 +18,63 @@ export default function ProfilePage() {
   const [editableProfile, setEditableProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
 
+  const { user } = useAuth();
+
   useEffect(() => {
-    // initialize local editable copy when context profile changes
     setEditableProfile(profile ? { ...profile } : null);
   }, [profile]);
 
   useEffect(() => {
-    if (!loading && !profile) {
+    // Only redirect if user is not authenticated (not just missing profile)
+    // New users might not have profile yet, but they're still authenticated
+    if (!loading && !user) {
       router.push('/');
     }
-  }, [loading, profile, router]);
+  }, [loading, user, router]);
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!editableProfile) return <div className="p-6">No profile found.</div>;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
+  
+  // If user is authenticated but profile hasn't loaded yet, show loading
+  // This can happen briefly after sign-in while profile is being created
+  if (user && !profile && !loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="loading-spinner" />
+        <p className="text-muted-foreground ml-3">Loading profile...</p>
+      </div>
+    );
+  }
+  
+  // If no user at all, redirect will happen in useEffect
+  if (!user) {
+    return null;
+  }
+  
+  // If profile still doesn't exist after loading, create a default one
+  if (!editableProfile && user) {
+    // Create a default profile structure
+    const defaultProfile: UserProfile = {
+      name: user.displayName || '',
+      email: user.email || '',
+      profile_pic_url: user.photoURL || '',
+      height_cm: 'n/a',
+      weight_kg: 'n/a',
+      goal: 'n/a',
+      experience_level: 'n/a',
+    };
+    setEditableProfile(defaultProfile);
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
 
   async function handleSave() {
     if (!editableProfile) return;
@@ -59,110 +105,180 @@ export default function ProfilePage() {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-        setEditableProfile((p) => (p ? { ...p, profile_pic_url: result } : p));
+      setEditableProfile((p) => (p ? { ...p, profile_pic_url: result } : p));
     };
     reader.readAsDataURL(file);
   }
 
+  const goals = [
+    { value: 'muscle_gain', label: 'Muscle Gain', icon: '💪' },
+    { value: 'fat_loss', label: 'Fat Loss', icon: '🔥' },
+    { value: 'endurance', label: 'Endurance', icon: '🏃' },
+  ];
+
+  const levels = [
+    { value: 'beginner', label: 'Beginner' },
+    { value: 'intermediate', label: 'Intermediate' },
+    { value: 'advanced', label: 'Advanced' },
+  ];
+
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="p-4 bg-white border-b flex items-center">
+      <div className="flex flex-col min-h-screen">
+        {/* Header */}
+        <header className="page-header flex items-center gap-4">
           <button
             onClick={() => router.push('/home')}
+            className="icon-btn w-10 h-10"
             aria-label="Back to home"
-            className="mr-4 text-2xl"
           >
-            ←
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <h1 className="flex-1 text-center text-xl font-semibold">Profile</h1>
+          <h1 className="page-title flex-1 text-center pr-10">Profile</h1>
         </header>
 
-        <main className="flex-1 overflow-auto p-6">
-          <div className="max-w-md mx-auto">
-            <div className="flex flex-col items-center gap-4 mb-6">
-              <div className="w-28 h-28 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
-                {editableProfile?.profile_pic_url ? (
-                  // using native img for data URL simplicity
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={editableProfile.profile_pic_url} alt="profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="text-gray-400">No Photo</div>
-                )}
+        <main className="flex-1 p-6">
+          <div className="max-w-md mx-auto space-y-6 animate-fade-in-up">
+            {/* Profile Photo */}
+            <div className="flex flex-col items-center">
+              <div className="relative group">
+                <div className="w-28 h-28 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 overflow-hidden flex items-center justify-center border-2 border-[rgba(255,255,255,0.1)]">
+                  {editableProfile?.profile_pic_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img 
+                      src={editableProfile.profile_pic_url} 
+                      alt="profile" 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <User className="w-12 h-12 text-muted-foreground" />
+                  )}
+                </div>
+                <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-2xl">
+                  <Camera className="w-6 h-6 text-white" />
+                  <input 
+                    onChange={onFileChange} 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                </label>
               </div>
-              <label className="text-sm text-gray-600 cursor-pointer">
-                <input onChange={onFileChange} type="file" accept="image/*" className="hidden" />
-                <span className="underline">Change profile photo</span>
-              </label>
+              <button 
+                onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}
+                className="text-sm text-primary mt-3 hover:underline"
+              >
+                Change photo
+              </button>
             </div>
 
-            <div className="bg-white rounded-2xl p-4 shadow-sm">
+            {/* Profile Info Card */}
+            <Card>
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs text-gray-500">Name</label>
-                  <div className="mt-1 text-sm text-gray-800">{editableProfile?.name || '—'}</div>
+                {/* Name & Email (Read-only) */}
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[rgba(255,255,255,0.03)]">
+                  <User className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Name</p>
+                    <p className="text-foreground font-medium">{editableProfile?.name || 'Not set'}</p>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs text-gray-500">Email</label>
-                  <div className="mt-1 text-sm text-gray-800">{editableProfile?.email || '—'}</div>
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[rgba(255,255,255,0.03)]">
+                  <Mail className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-foreground font-medium">{editableProfile?.email || 'Not set'}</p>
+                  </div>
                 </div>
 
-                <div>
+                <div className="divider" />
+
+                {/* Editable Fields */}
+                <div className="grid grid-cols-2 gap-4">
                   <Input
-                    label="Height (cm)"
+                    label="Height"
                     value={editableProfile?.height_cm || ''}
                     onChange={(e) => setEditableProfile((p) => p ? { ...p, height_cm: e.target.value } : p)}
+                    placeholder="cm"
+                    icon={<Ruler className="w-4 h-4" />}
                   />
-                </div>
-
-                <div>
                   <Input
-                    label="Weight (kg)"
+                    label="Weight"
                     value={editableProfile?.weight_kg || ''}
                     onChange={(e) => setEditableProfile((p) => p ? { ...p, weight_kg: e.target.value } : p)}
+                    placeholder="kg"
+                    icon={<Scale className="w-4 h-4" />}
                   />
                 </div>
-
-                <div>
-                  <label className="text-sm font-medium">Goal</label>
-                  <div className="mt-2 flex gap-2">
-                    {['muscle_gain', 'fat_loss', 'endurance'].map((g) => (
-                      <button
-                        key={g}
-                        type="button"
-                        onClick={() => setEditableProfile((p) => p ? { ...p, goal: g } : p)}
-                        className={`px-3 py-2 rounded-lg border ${editableProfile?.goal === g ? 'bg-black text-white' : 'bg-white text-gray-700'}`}
-                      >
-                        {g === 'muscle_gain' ? 'Muscle Gain' : g === 'fat_loss' ? 'Fat Loss' : 'Endurance'}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Experience Level</label>
-                  <div className="mt-2 flex gap-2">
-                    {['beginner', 'intermediate', 'advanced'].map((lvl) => (
-                      <button
-                        key={lvl}
-                        type="button"
-                        onClick={() => setEditableProfile((p) => p ? { ...p, experience_level: lvl } : p)}
-                        className={`px-3 py-2 rounded-lg border ${editableProfile?.experience_level === lvl ? 'bg-black text-white' : 'bg-white text-gray-700'}`}
-                      >
-                        {lvl.charAt(0).toUpperCase() + lvl.slice(1)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <Button onClick={handleSave} disabled={saving || updateProfile.isPending}>
-                    {saving || updateProfile.isPending ? 'Saving...' : 'Save Profile'}
-                  </Button>
-                </div>
               </div>
-            </div>
+            </Card>
+
+            {/* Goal Selection */}
+            <Card>
+              <div className="flex items-center gap-2 mb-4">
+                <Target className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Fitness Goal</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {goals.map((g) => (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setEditableProfile((p) => p ? { ...p, goal: g.value } : p)}
+                    className={`p-3 rounded-xl border text-center transition-all duration-300 ${
+                      editableProfile?.goal === g.value
+                        ? 'bg-primary/20 border-primary text-primary'
+                        : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-muted-foreground hover:border-[rgba(255,255,255,0.15)]'
+                    }`}
+                  >
+                    <span className="text-xl mb-1 block">{g.icon}</span>
+                    <span className="text-xs font-medium">{g.label}</span>
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Experience Level */}
+            <Card>
+              <div className="flex items-center gap-2 mb-4">
+                <Zap className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold text-foreground">Experience Level</h3>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {levels.map((lvl) => (
+                  <button
+                    key={lvl.value}
+                    type="button"
+                    onClick={() => setEditableProfile((p) => p ? { ...p, experience_level: lvl.value } : p)}
+                    className={`px-4 py-3 rounded-xl border text-sm font-medium transition-all duration-300 ${
+                      editableProfile?.experience_level === lvl.value
+                        ? 'bg-primary/20 border-primary text-primary'
+                        : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-muted-foreground hover:border-[rgba(255,255,255,0.15)]'
+                    }`}
+                  >
+                    {lvl.label}
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Save Button */}
+            <Button 
+              onClick={handleSave} 
+              disabled={saving || updateProfile.isPending}
+              className="w-full"
+              size="lg"
+            >
+              {saving || updateProfile.isPending ? (
+                <span className="loading-spinner" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save Profile
+                </>
+              )}
+            </Button>
           </div>
         </main>
       </div>

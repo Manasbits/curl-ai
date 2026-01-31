@@ -31,8 +31,23 @@ export function useActiveWorkout(userId: string, routineId?: string) {
 
   // Complete the workout
   const completeWorkout = useMutation({
-    mutationFn: async (params: { workoutId: string; endTime: Date; durationSeconds: number }) => {
-      await finishWorkout(userId, params.workoutId, params.endTime, params.durationSeconds);
+    mutationFn: async (params: { 
+      workoutId: string; 
+      endTime: Date; 
+      durationSeconds: number;
+      totalVolume?: number;
+      totalReps?: number;
+      totalSets?: number;
+    }) => {
+      await finishWorkout(
+        userId, 
+        params.workoutId, 
+        params.endTime, 
+        params.durationSeconds,
+        params.totalVolume,
+        params.totalReps,
+        params.totalSets
+      );
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ['workouts', userId] });
     }

@@ -1,13 +1,13 @@
- 'use client'
-import { LogOut, Star } from 'lucide-react';
+'use client'
+import { LogOut, Star, ChevronRight, Flame, Dumbbell, Calendar, TrendingUp } from 'lucide-react';
 import { signOut } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
 
 export default function WorkoutPage() {
-  const { profile: userProfile, loading } = useAuth();
+  const { profile: userProfile, loading, routines } = useAuth();
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -19,118 +19,163 @@ export default function WorkoutPage() {
     }
   };
 
-  // auth/profile are provided by AuthProvider via useAuth
-
-  const pinnedWorkouts: { title: string; description: string }[] = [
-    {
-      title: 'Push',
-      description: 'Warm up, Bench press(Barbell), Incline Bench Press (Dumbell), Incline...'
-    }
-  ];
-
-  const history: { date: string; description: string }[] = [
-    {
-      date: '13/02/2025',
-      description: 'Warm up, Bent Over Row (Barbell), Lat Pulldown (Cable), Bicep Curl (Dumbell)...'
-    }
-  ];
+  // Get favorite routines for pinned workouts
+  const pinnedWorkouts = routines?.filter(r => r.is_favorite) || [];
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#F9FAFB] py-10 drop-shadow-black">
+    <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <div className="relative flex items-center p-4 border-b bg-white shadow-sm drop-shadow-black">
-        <h1 className="absolute left-1/2 transform -translate-x-1/2 text-lg font-sans font-regular">
-          Workout
-        </h1>
+      <header className="page-header flex items-center justify-between">
+        <h1 className="page-title">Workout</h1>
         <button 
           onClick={handleLogout}
-          className="ml-auto flex items-center gap-2 text-gray-600 hover:text-gray-800"
+          className="icon-btn w-10 h-10"
+          aria-label="Logout"
         >
           <LogOut className="w-5 h-5" />
         </button>
-      </div>
+      </header>
 
       {loading ? (
-        <div className="p-6 text-center">Loading...</div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="loading-spinner" />
+        </div>
       ) : (
-        <div className="flex-1">
-          {/* User Profile Summary */}
-          <div className="p-6 bg-white border-b">
-            <h2 className="text-xl font-semibold">Welcome, {userProfile?.name || 'Athlete'}!</h2>
-            <p className="text-sm text-gray-600 mt-2">
-              Level: {userProfile?.experience_level || 'Not set'} • 
-              Goal: {userProfile?.goal || 'Not set'}
-            </p>
-            {/* optional: add streak_days to UserProfile if you track it */}
+        <div className="flex-1 p-6 space-y-8 stagger-children">
+          {/* Welcome Section */}
+          <div className="glass-card p-6">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-cyan-600 flex items-center justify-center shadow-lg shadow-primary/30">
+                <span className="text-2xl font-bold text-white">
+                  {userProfile?.name?.charAt(0) || 'A'}
+                </span>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-foreground">
+                  Welcome back, {userProfile?.name?.split(' ')[0] || 'Athlete'}!
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                  {userProfile?.experience_level ? (
+                    <span className="capitalize">{userProfile.experience_level}</span>
+                  ) : 'Ready to train'}
+                  {userProfile?.goal && (
+                    <> • <span className="capitalize">{userProfile.goal.replace('_', ' ')}</span></>
+                  )}
+                </p>
+              </div>
+            </div>
+            
+            {/* Stats Row */}
+            <div className="flex gap-4 mt-6">
+              <div className="flex-1 text-center p-3 rounded-xl bg-[rgba(255,255,255,0.03)]">
+                <div className="flex items-center justify-center gap-2 text-primary mb-1">
+                  <Flame className="w-4 h-4" />
+                  <span className="font-bold text-lg">
+                    {userProfile?.stats?.currentStreak ?? 0}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">Day Streak</span>
+              </div>
+              <div className="flex-1 text-center p-3 rounded-xl bg-[rgba(255,255,255,0.03)]">
+                <div className="flex items-center justify-center gap-2 text-primary mb-1">
+                  <Dumbbell className="w-4 h-4" />
+                  <span className="font-bold text-lg">{routines?.length || 0}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">Routines</span>
+              </div>
+              <div className="flex-1 text-center p-3 rounded-xl bg-[rgba(255,255,255,0.03)]">
+                <div className="flex items-center justify-center gap-2 text-primary mb-1">
+                  <Calendar className="w-4 h-4" />
+                  <span className="font-bold text-lg">
+                    {/* Weekly workouts will eventually come from activity_log aggregation */}
+                    {userProfile?.stats?.totalWorkouts ?? 0}
+                  </span>
+                </div>
+                <span className="text-xs text-muted-foreground">This Week</span>
+              </div>
+            </div>
           </div>
 
           {/* Quick Start Section */}
-          <div className="p-6">
-            <h2 className="text-3xl mb-4 font-sans font-semibold">Quick Start.</h2>
-            <div className="flex flex-col gap-3 mb-6">
-              <Button onClick={() => router.push('/routine')} className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold ">Plan a Workout</Button>
-              <Button className="bg-[#111827] text-[#CCCCCC] py-3 text-base rounded-lg font-sans font-semibold">Explore Workouts</Button>
+          <section>
+            <h2 className="section-title flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-primary" />
+              Quick Start
+            </h2>
+            <div className="grid gap-3">
+              <Button 
+                onClick={() => router.push('/routine')} 
+                size="lg"
+                className="w-full justify-between"
+              >
+                <span>Plan a Workout</span>
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+              <Button 
+                onClick={() => router.push('/routine/explore')}
+                variant="secondary"
+                size="lg"
+                className="w-full justify-between"
+              >
+                <span>Explore Routines</span>
+                <ChevronRight className="w-5 h-5" />
+              </Button>
             </div>
+          </section>
 
-            {/* Pinned Workouts */}
-            <div className="mb-2">
-              <div className="flex justify-between items-center mb-2 w-full">
-                <span className="text-sm font-semibold text-[#111827] font-sans">
+          {/* Pinned Workouts */}
+          {pinnedWorkouts.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+                  <Star className="w-5 h-5 text-yellow-500" />
                   Pinned Workouts
-                </span>
-                <Star className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                </h2>
               </div>
-              {pinnedWorkouts.map((workout, index) => (
-                <Card key={index} className="mb-4 shadow-sm drop-shadow-2xl">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg mb-1 font-sans font-bold">{workout.title}</h3>
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-1">{workout.description}</p>
-                    <Button className="bg-blue-600 text-white w-full py-2 rounded-lg">
-                      Start Routine
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+              <div className="space-y-3">
+                {pinnedWorkouts.slice(0, 3).map((workout) => (
+                  <Card key={workout.id} className="cursor-pointer" onClick={() => router.push(`/workout_log?routine=${workout.id}`)}>
+                    <CardHeader>
+                      <CardTitle className="flex items-center justify-between">
+                        {workout.name}
+                        <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />
+                      </CardTitle>
+                      <CardDescription className="line-clamp-1">
+                        {workout.exercises.length} exercises • {workout.description}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <Button className="w-full" size="sm">
+                        Start Workout
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </section>
+          )}
 
-            {/* History */}
-            <div>
-              <div className="flex items-center mb-2">
-                <span className="text-sm font-sans font-semibold text-[#111827]">History</span>
+          {/* Empty State for No Workouts */}
+          {pinnedWorkouts.length === 0 && (
+            <div className="glass-card p-8 text-center">
+              <div className="w-16 h-16 rounded-2xl bg-[rgba(255,255,255,0.05)] flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-muted-foreground" />
               </div>
-              {history.map((item, index) => (
-                <Card key={index} className="mb-4 shadow-sm drop-shadow-2xl">
-                  <CardContent className="p-4">
-                    <h3 className="text-lg mb-1 font-sans font-bold">{item.date}</h3>
-                    <p className="text-sm text-gray-500 mb-3 line-clamp-1">{item.description}</p>
-                    <Button className="bg-blue-600 text-white w-full py-2 rounded-lg">View Routine</Button>
-                  </CardContent>
-                </Card>
-              ))}
+              <h3 className="text-lg font-semibold mb-2">No Pinned Workouts</h3>
+              <p className="text-muted-foreground text-sm mb-4">
+                Star your favorite routines for quick access
+              </p>
+              <Button 
+                variant="secondary" 
+                onClick={() => router.push('/routine/explore')}
+              >
+                Browse Routines
+              </Button>
             </div>
-          </div>
+          )}
         </div>
       )}
-
-      {/* Bottom Navigation Bar */}
-  <nav className="fixed bottom-0 left-0 right-0 bg-black text-white flex justify-around py-3">
-        <button className="flex flex-col items-center text-xs">
-          <span>🏠</span>
-          <span>Home</span>
-        </button>
-        <button className="flex flex-col items-center text-xs">
-          <span>📊</span>
-          <span>Activity</span>
-        </button>
-        <button className="flex flex-col items-center text-xs">
-          <span>🤖</span>
-          <span>AI</span>
-        </button>
-        <button onClick={() => router.push('/profile')} className="flex flex-col items-center text-xs">
-          <span>👤</span>
-          <span>Profile</span>
-        </button>
-      </nav>
     </div>
   );
 }

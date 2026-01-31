@@ -1,0 +1,118 @@
+{
+    "name": "Curl AI Design System",
+    "description": "A minimalist, high-performance design system inspired by Cal AI, focused on mobile-first gym tracking.",
+    "theme": {
+        "colors": {
+            "light": {
+                "background": "#ffffff",
+                "foreground": "#09090b",
+                "card": "#ffffff",
+                "card-foreground": "#09090b",
+                "popover": "#ffffff",
+                "popover-foreground": "#09090b",
+                "primary": "#18181b",
+                "primary-foreground": "#fafafa",
+                "secondary": "#f4f4f5",
+                "secondary-foreground": "#18181b",
+                "muted": "#f4f4f5",
+                "muted-foreground": "#71717a",
+                "accent": "#f4f4f5",
+                "accent-foreground": "#18181b",
+                "destructive": "#ef4444",
+                "destructive-foreground": "#fafafa",
+                "border": "#e4e4e7",
+                "input": "#e4e4e7",
+                "ring": "#18181b",
+                "chart-1": "#e76e50",
+                "chart-2": "#2a9d8f",
+                "chart-3": "#264653",
+                "chart-4": "#e9c46a",
+                "chart-5": "#f4a261"
+            },
+            "dark": {
+                "background": "#09090b",
+                "foreground": "#fafafa",
+                "card": "#18181b",
+                "card-foreground": "#fafafa",
+                "popover": "#18181b",
+                "popover-foreground": "#fafafa",
+                "primary": "#fafafa",
+                "primary-foreground": "#18181b",
+                "secondary": "#27272a",
+                "secondary-foreground": "#fafafa",
+                "muted": "#27272a",
+                "muted-foreground": "#a1a1aa",
+                "accent": "#27272a",
+                "accent-foreground": "#fafafa",
+                "destructive": "#7f1d1d",
+                "destructive-foreground": "#fafafa",
+                "border": "#27272a",
+                "input": "#27272a",
+                "ring": "#d4d4d8",
+                "chart-1": "#22c55e",
+                "chart-2": "#3b82f6",
+                "chart-3": "#f59e0b",
+                "chart-4": "#ef4444",
+                "chart-5": "#8b5cf6"
+            }
+        },
+        "typography": {
+            "fontFamily": {
+                "sans": [
+                    "SF Pro",
+                    "Inter",
+                    "system-ui",
+                    "sans-serif"
+                ],
+                "mono": [
+                    "Geist Mono",
+                    "monospace"
+                ]
+            },
+            "fontSize": {
+                "xs": "0.75rem",
+                "sm": "0.875rem",
+                "base": "1rem",
+                "lg": "1.125rem",
+                "xl": "1.25rem",
+                "2xl": "1.5rem",
+                "3xl": "1.875rem",
+                "4xl": "2.25rem"
+            },
+            "fontWeight": {
+                "normal": "400",
+                "medium": "500",
+                "semibold": "600",
+                "bold": "700"
+            }
+        },
+        "borderRadius": {
+            "lg": "0.75rem",
+            "md": "calc(0.75rem - 2px)",
+            "sm": "calc(0.75rem - 4px)"
+        },
+        "spacing": {
+            "container-padding": "1.5rem",
+            "section-gap": "2rem"
+        },
+        "shadows": {
+            "card": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+            "floating": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)"
+        }
+    },
+    "components": {
+        "button": {
+            "default": "h-10 px-4 py-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+            "primary": "bg-primary text-primary-foreground hover:bg-primary/90",
+            "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+            "ghost": "hover:bg-accent hover:text-accent-foreground",
+            "destructive": "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+        },
+        "card": {
+            "base": "rounded-lg border bg-card text-card-foreground shadow-sm"
+        },
+        "input": {
+            "base": "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+        }
+    }
+}

@@ -1,14 +1,72 @@
 'use client'
-import { useState } from 'react';
-import { Search, Home, TrendingUp, Bot, User, Check } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Search, Check, ChevronLeft, Dumbbell, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { useRouter } from 'next/navigation';
+import { useGlobalExercises } from '@/hooks/use-global-exercises';
+import type { GlobalExercise } from '@/lib/types/schema';
 
 interface Exercise {
-  id: number;
+  id: number | string; // Can be number (fallback) or string (exerciseId)
   name: string;
   category: string;
   image: string;
+  exerciseId?: string; // Store exerciseId for global exercises
+}
+
+// Fallback exercises (used when global_exercises collection is empty or fails)
+const FALLBACK_EXERCISES: Exercise[] = [
+  { id: 1, name: 'Warm Up', category: 'Full Body', image: '🔥' },
+  { id: 2, name: 'Bent Over Row (Barbell)', category: 'Upper Back', image: '🏋️' },
+  { id: 3, name: 'Straight Arm Lat Pulldown (Cable)', category: 'Lats', image: '💪' },
+  { id: 4, name: 'Deadlift (Barbell)', category: 'Glutes', image: '🏋️' },
+  { id: 5, name: 'Rear Delt Reverse Fly (Machine)', category: 'Shoulders', image: '🎯' },
+  { id: 6, name: 'Squat (Barbell)', category: 'Quadriceps', image: '🦵' },
+  { id: 7, name: 'Bench Press (Barbell)', category: 'Chest', image: '💪' },
+  { id: 8, name: 'Pull Up', category: 'Back', image: '🔝' },
+  { id: 9, name: 'Shoulder Press (Dumbbell)', category: 'Shoulders', image: '🏋️' },
+  { id: 10, name: 'Bicep Curl (Dumbbell)', category: 'Biceps', image: '💪' },
+];
+
+// Helper to convert GlobalExercise to Exercise format
+function globalExerciseToExercise(ge: GlobalExercise, index: number): Exercise {
+  // Map primary muscle to category for display
+  const categoryMap: Record<string, string> = {
+    'Chest': 'Chest',
+    'Back': 'Back',
+    'Shoulders': 'Shoulders',
+    'Legs': 'Legs',
+    'Arms': 'Arms',
+    'Biceps': 'Biceps',
+    'Triceps': 'Triceps',
+    'Quadriceps': 'Quadriceps',
+    'Hamstrings': 'Hamstrings',
+    'Glutes': 'Glutes',
+    'Calves': 'Calves',
+    'Core': 'Core',
+    'Lats': 'Lats',
+    'Upper Back': 'Upper Back',
+  };
+  
+  // Get emoji based on equipment or muscle group
+  const getEmoji = (equipment: string, primaryMuscle: string): string => {
+    if (equipment.includes('Barbell')) return '🏋️';
+    if (equipment.includes('Dumbbell')) return '💪';
+    if (equipment.includes('Cable') || equipment.includes('Machine')) return '🎯';
+    if (primaryMuscle.includes('Chest')) return '💪';
+    if (primaryMuscle.includes('Leg')) return '🦵';
+    if (primaryMuscle.includes('Back')) return '🔝';
+    return '🏋️';
+  };
+
+  return {
+    id: ge.exerciseId,
+    exerciseId: ge.exerciseId,
+    name: ge.name,
+    category: categoryMap[ge.primaryMuscle] || ge.primaryMuscle,
+    image: getEmoji(ge.equipment, ge.primaryMuscle),
+  };
 }
 
 export default function ExercisesListPage() {
@@ -16,23 +74,35 @@ export default function ExercisesListPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<'equipment' | 'muscles' | null>(null);
   const [selectedExercises, setSelectedExercises] = useState<Exercise[]>([]);
+  
+  // Fetch global exercises
+  const { data: globalExercises = [], isLoading } = useGlobalExercises();
+  
+  // Transform global exercises or use fallback
+  const exercises: Exercise[] = useMemo(() => {
+    if (globalExercises.length > 0) {
+      return globalExercises.map(globalExerciseToExercise);
+    }
+    // Fallback to hardcoded exercises if global_exercises is empty
+    return FALLBACK_EXERCISES;
+  }, [globalExercises]);
 
-  const exercises: Exercise[] = [
-    { id: 1, name: 'Warm Up', category: 'Full Body', image: '💪' },
-    { id: 2, name: 'Bent Over Row (Barbell)', category: 'Upper Back', image: '🏋️' },
-    { id: 3, name: 'Straight Arm Lat Pulldown (Cable)', category: 'Lats', image: '💪' },
-    { id: 4, name: 'Deadlift (Barbell)', category: 'Glutes', image: '🏋️' },
-    { id: 5, name: 'Rear Delt Reverse Fly (Machine)', category: 'Shoulders', image: '🏋️' },
-    { id: 6, name: 'Squat (Barbell)', category: 'Quadriceps', image: '🏋️' },
-    { id: 7, name: 'Bench Press (Barbell)', category: 'Chest', image: '🏋️' },
-    { id: 8, name: 'Pull Up', category: 'Back', image: '💪' },
-    { id: 9, name: 'Shoulder Press (Dumbbell)', category: 'Shoulders', image: '🏋️' },
-    { id: 10, name: 'Bicep Curl (Dumbbell)', category: 'Biceps', image: '💪' },
-  ];
-
-  const filteredExercises = exercises.filter(exercise =>
-    exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredExercises = useMemo(() => {
+    let filtered = exercises;
+    
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(exercise =>
+        exercise.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        exercise.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // TODO: Add equipment and muscle group filters when needed
+    // For now, filter buttons are UI-only
+    
+    return filtered;
+  }, [exercises, searchQuery]);
 
   const toggleExerciseSelection = (exercise: Exercise) => {
     const isSelected = selectedExercises.some(ex => ex.id === exercise.id);
@@ -49,144 +119,145 @@ export default function ExercisesListPage() {
   };
 
   const handleAddExercises = () => {
-    // Store selected exercises in localStorage temporarily
     const existingExercises = localStorage.getItem('routineExercises');
     const currentExercises = existingExercises ? JSON.parse(existingExercises) : [];
     
-    // Add new exercises to the list
     const updatedExercises = [...currentExercises, ...selectedExercises];
     localStorage.setItem('routineExercises', JSON.stringify(updatedExercises));
     
-    // Navigate back to routine page
     router.push('/routine');
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
+    <div className="flex flex-col min-h-screen">
       {/* Header */}
-      <div className="relative flex items-center justify-between p-4 border-b bg-white">
+      <header className="page-header flex items-center gap-4">
         <button 
           onClick={() => router.back()}
-          className="text-cyan-500 font-medium"
+          className="icon-btn w-10 h-10"
         >
-          Cancel
+          <ChevronLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-lg font-semibold absolute left-1/2 transform -translate-x-1/2">
-          Add Exercise
-        </h1>
-        <button className="text-cyan-500 font-medium opacity-0">
-          Create
-        </button>
-      </div>
+        <h1 className="page-title flex-1 text-center pr-10">Add Exercise</h1>
+      </header>
 
       {/* Content */}
-      <div className="flex-1 p-4 pb-32">
-        {/* Search Bar */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search exercise"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-cyan-400"
-          />
-        </div>
+      <main className="flex-1 p-6 animate-fade-in-up">
+        {isLoading ? (
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="loading-spinner" />
+          </div>
+        ) : (
+          <>
+            {/* Search Bar */}
+            <div className="mb-4">
+              <Input
+                placeholder="Search exercises..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                icon={<Search className="w-5 h-5" />}
+              />
+            </div>
 
         {/* Filter Buttons */}
         <div className="flex gap-3 mb-6">
           <button
             onClick={() => setSelectedFilter(selectedFilter === 'equipment' ? null : 'equipment')}
-            className={`flex-1 py-2 rounded-lg font-medium text-sm ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-medium text-sm transition-all duration-300 ${
               selectedFilter === 'equipment'
-                ? 'bg-[#1F2937] text-white'
-                : 'bg-gray-100 text-gray-700'
+                ? 'bg-primary/20 border-primary text-primary'
+                : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-muted-foreground hover:bg-[rgba(255,255,255,0.06)]'
             }`}
           >
+            <Filter className="w-4 h-4" />
             All Equipment
           </button>
           <button
             onClick={() => setSelectedFilter(selectedFilter === 'muscles' ? null : 'muscles')}
-            className={`flex-1 py-2 rounded-lg font-medium text-sm ${
+            className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border font-medium text-sm transition-all duration-300 ${
               selectedFilter === 'muscles'
-                ? 'bg-[#1F2937] text-white'
-                : 'bg-gray-100 text-gray-700'
+                ? 'bg-primary/20 border-primary text-primary'
+                : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-muted-foreground hover:bg-[rgba(255,255,255,0.06)]'
             }`}
           >
+            <Dumbbell className="w-4 h-4" />
             All Muscles
           </button>
         </div>
 
-        {/* Recent Exercises */}
-        <h2 className="text-gray-500 text-sm font-medium mb-4">Recent Exercises</h2>
+        {/* Recent Exercises Label */}
+        <h2 className="text-sm font-medium text-muted-foreground mb-4 flex items-center gap-2">
+          <Dumbbell className="w-4 h-4" />
+          Recent Exercises
+        </h2>
 
         {/* Exercise List */}
-        <div className="space-y-3">
-          {filteredExercises.map((exercise) => (
-            <button
-              key={exercise.id}
-              onClick={() => toggleExerciseSelection(exercise)}
-              className="w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              {/* Exercise Icon/Image */}
-              <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                {exercise.image}
-              </div>
+        <div className="space-y-2 stagger-children">
+          {filteredExercises.map((exercise) => {
+            const isSelected = isExerciseSelected(exercise.id);
+            return (
+              <button
+                key={exercise.id}
+                onClick={() => toggleExerciseSelection(exercise)}
+                className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 ${
+                  isSelected 
+                    ? 'bg-primary/10 border-primary' 
+                    : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]'
+                }`}
+              >
+                {/* Exercise Icon */}
+                <div className="w-12 h-12 rounded-xl bg-[rgba(255,255,255,0.05)] flex items-center justify-center text-2xl shrink-0">
+                  {exercise.image}
+                </div>
 
-              {/* Exercise Info */}
-              <div className="flex-1 text-left">
-                <h3 className="font-medium text-gray-900 text-base">
-                  {exercise.name}
-                </h3>
-                <p className="text-gray-500 text-sm">{exercise.category}</p>
-              </div>
+                {/* Exercise Info */}
+                <div className="flex-1 text-left">
+                  <h3 className="font-medium text-foreground">{exercise.name}</h3>
+                  <p className="text-muted-foreground text-sm">{exercise.category}</p>
+                </div>
 
-              {/* Check Icon */}
-              <div className={`w-8 h-8 border-2 rounded-full flex items-center justify-center flex-shrink-0 ${
-                isExerciseSelected(exercise.id)
-                  ? 'bg-cyan-500 border-cyan-500'
-                  : 'border-gray-300'
-              }`}>
-                {isExerciseSelected(exercise.id) && (
-                  <Check className="w-5 h-5 text-white" />
-                )}
-              </div>
-            </button>
-          ))}
+                {/* Check Icon */}
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                  isSelected 
+                    ? 'bg-primary text-white' 
+                    : 'bg-[rgba(255,255,255,0.05)] text-transparent'
+                }`}>
+                  <Check className="w-4 h-4" />
+                </div>
+              </button>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Add Exercise Button - Shows when exercises are selected */}
+        {/* Empty State */}
+        {filteredExercises.length === 0 && (
+          <div className="glass-card p-8 text-center mt-8">
+            <div className="w-16 h-16 rounded-2xl bg-[rgba(255,255,255,0.05)] flex items-center justify-center mx-auto mb-4">
+              <Search className="w-8 h-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">No exercises found</h3>
+            <p className="text-muted-foreground text-sm">
+              Try a different search term
+            </p>
+          </div>
+        )}
+          </>
+        )}
+      </main>
+
+      {/* Add Exercise Button */}
       {selectedExercises.length > 0 && (
-        <div className="fixed bottom-20 left-0 right-0 p-4 bg-white border-t shadow-lg">
+        <div className="fixed bottom-24 left-0 right-0 p-4">
           <Button
             onClick={handleAddExercises}
-            className="w-full bg-cyan-500 hover:bg-cyan-600 text-white py-4 rounded-xl text-base font-semibold"
+            className="w-full max-w-lg mx-auto block"
+            size="lg"
           >
             Add {selectedExercises.length} Exercise{selectedExercises.length > 1 ? 's' : ''}
+            <Check className="w-5 h-5" />
           </Button>
         </div>
       )}
-
-      {/* Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#1F2937] text-white flex justify-around py-3 shadow-lg">
-        <button className="flex flex-col items-center gap-1">
-          <Home className="w-5 h-5" />
-          <span className="text-xs">Home</span>
-        </button>
-        <button className="flex flex-col items-center gap-1">
-          <TrendingUp className="w-5 h-5" />
-          <span className="text-xs">Activity</span>
-        </button>
-        <button className="flex flex-col items-center gap-1">
-          <Bot className="w-5 h-5" />
-          <span className="text-xs">AI</span>
-        </button>
-        <button className="flex flex-col items-center gap-1">
-          <User className="w-5 h-5" />
-          <span className="text-xs">Profile</span>
-        </button>
-      </nav>
     </div>
   );
 }

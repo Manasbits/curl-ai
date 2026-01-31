@@ -5,6 +5,9 @@ export function useProfile(userId: string) {
   return useQuery<UserProfile | null, Error>({
     queryKey: ['userProfile', userId],
     queryFn: () => getUserProfile(userId),
+    enabled: !!userId, // Only fetch when userId is provided
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1,
   });
 }
 

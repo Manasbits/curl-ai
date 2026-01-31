@@ -1,12 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import ProviderIcon from '@/components/ui/provider-icon';
 import { signInWithEmail, signInWithGoogle, signUpWithEmail, auth } from '@/lib/firebase';
 import { initializeUserInFirestore } from '@/lib/firestore';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { Mail, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function SignInPage() {
   const router = useRouter();
@@ -14,17 +14,20 @@ export default function SignInPage() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
-        // Initialize user data in Firestore
-        await initializeUserInFirestore(user);
-        // Redirect to home page
+        try {
+          await initializeUserInFirestore(user);
+        } catch (error) {
+          console.error('Error initializing user:', error);
+          // Don't block navigation if initialization fails
+        }
         router.push('/home');
       }
     });
 
     return () => unsubscribe();
   }, [router]);
+
   const [email, setEmail] = useState('');
-  // password is optional for initial sign-in (magic link / passwordless flow)
   const [password] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,9 +49,7 @@ export default function SignInPage() {
     setError(null);
     try {
       await signInWithEmail(email, password);
-      // on success: redirect or show toast (left as TODO)
     } catch {
-      // If not found, try sign up fallback
       try {
         await signUpWithEmail(email, password || Math.random().toString(36).slice(2, 10));
       } catch (err2: unknown) {
@@ -72,52 +73,97 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gray-50">
-      <div className="max-w-md w-full">
-        <header className="flex items-center gap-4 mb-6">
-          <button aria-label="back" className="text-2xl">←</button>
-          <h1 className="flex-1 text-center text-3xl font-bold">Sign In</h1>
-        </header>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-32 w-64 h-64 bg-primary/20 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-1/4 -right-32 w-80 h-80 bg-purple-500/15 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+      </div>
 
-        <form onSubmit={handleContinue} className="bg-white rounded-2xl p-6 shadow-sm">
-          <Input
-            label="Email Address"
-            placeholder="Enter email address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+      <div className="max-w-md w-full relative z-10 animate-fade-in-up">
+        {/* Logo & Title */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-cyan-600 mb-6 shadow-lg shadow-primary/30">
+            <Sparkles className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-4xl font-bold gradient-text mb-3">CurlAI</h1>
+          <p className="text-muted-foreground text-lg">Your AI-powered gym companion</p>
+        </div>
 
-          <div className="mt-6">
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Loading...' : 'Continue'}
+        {/* Sign In Form */}
+        <div className="glass-card p-8 animate-scale-in" style={{ animationDelay: '0.1s' }}>
+          <form onSubmit={handleContinue} className="space-y-6">
+            <Input
+              label="Email Address"
+              placeholder="Enter your email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              icon={<Mail className="w-5 h-5" />}
+            />
+
+            <Button 
+              type="submit" 
+              disabled={loading || !email} 
+              className="w-full"
+              size="lg"
+            >
+              {loading ? (
+                <span className="loading-spinner" />
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </Button>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm animate-fade-in">
+                {error}
+              </div>
+            )}
+          </form>
+
+          <div className="divider-text my-8">
+            <span>Or continue with</span>
           </div>
 
-          {error && <div className="mt-4 text-sm text-red-600">{error}</div>}
-
-          <div className="mt-6 text-center text-sm text-gray-500">
-            Don&apos;t have an account? <a className="font-medium text-gray-800">Create Account</a>
-          </div>
-
-          <div className="mt-6 flex items-center gap-3">
-            <div className="flex-1 h-px bg-gray-200" />
-            <div className="text-gray-400 text-sm">Or</div>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          <div className="mt-6 flex justify-center gap-4">
-            <button type="button" onClick={handleGoogle} aria-label="google" className="p-0">
+          <div className="flex justify-center gap-4">
+            <button
+              type="button"
+              onClick={handleGoogle}
+              disabled={loading}
+              className="icon-btn w-14 h-14"
+              aria-label="Sign in with Google"
+            >
               <ProviderIcon provider="google" />
             </button>
-            <button type="button" aria-label="apple" className="p-0">
+            <button
+              type="button"
+              disabled={loading}
+              className="icon-btn w-14 h-14 opacity-50 cursor-not-allowed"
+              aria-label="Sign in with Apple (coming soon)"
+            >
               <ProviderIcon provider="apple" />
             </button>
-            <button type="button" aria-label="facebook" className="p-0">
+            <button
+              type="button"
+              disabled={loading}
+              className="icon-btn w-14 h-14 opacity-50 cursor-not-allowed"
+              aria-label="Sign in with Facebook (coming soon)"
+            >
               <ProviderIcon provider="facebook" />
             </button>
           </div>
-        </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-8">
+            By continuing, you agree to our{' '}
+            <a href="#" className="text-primary hover:underline">Terms of Service</a>
+            {' '}and{' '}
+            <a href="#" className="text-primary hover:underline">Privacy Policy</a>
+          </p>
+        </div>
       </div>
     </div>
   );

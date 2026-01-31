@@ -2,9 +2,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 import { useAuth } from '@/context/auth-context';
 import { createRoutine } from '@/lib/firestore';
 import type { Routine } from '@/lib/types/workout';
+import { ChevronLeft, Plus, Minus, Check, Timer, Flame, ChevronRight } from 'lucide-react';
 
 interface Exercise {
   id: number;
@@ -33,17 +35,17 @@ export default function CustomRoutinePage() {
   const { user } = useAuth();
   const [selectedExercises, setSelectedExercises] = useState<RoutineExercise[]>([]);
   const [step, setStep] = useState<'select' | 'configure'>('select');
+  const [saving, setSaving] = useState(false);
 
-  // Hardcoded exercises (should be fetched or imported in real app)
   const exercises: Exercise[] = [
-    { id: 1, name: 'Warm Up', category: 'Full Body', image: '💪' },
+    { id: 1, name: 'Warm Up', category: 'Full Body', image: '🔥' },
     { id: 2, name: 'Bent Over Row (Barbell)', category: 'Upper Back', image: '🏋️' },
     { id: 3, name: 'Straight Arm Lat Pulldown (Cable)', category: 'Lats', image: '💪' },
     { id: 4, name: 'Deadlift (Barbell)', category: 'Glutes', image: '🏋️' },
-    { id: 5, name: 'Rear Delt Reverse Fly (Machine)', category: 'Shoulders', image: '🏋️' },
-    { id: 6, name: 'Squat (Barbell)', category: 'Quadriceps', image: '🏋️' },
-    { id: 7, name: 'Bench Press (Barbell)', category: 'Chest', image: '🏋️' },
-    { id: 8, name: 'Pull Up', category: 'Back', image: '💪' },
+    { id: 5, name: 'Rear Delt Reverse Fly (Machine)', category: 'Shoulders', image: '🎯' },
+    { id: 6, name: 'Squat (Barbell)', category: 'Quadriceps', image: '🦵' },
+    { id: 7, name: 'Bench Press (Barbell)', category: 'Chest', image: '💪' },
+    { id: 8, name: 'Pull Up', category: 'Back', image: '🔝' },
     { id: 9, name: 'Shoulder Press (Dumbbell)', category: 'Shoulders', image: '🏋️' },
     { id: 10, name: 'Bicep Curl (Dumbbell)', category: 'Biceps', image: '💪' },
   ];
@@ -111,8 +113,10 @@ export default function CustomRoutinePage() {
       return;
     }
 
+    setSaving(true);
+
     const newRoutine: Omit<Routine, 'id' | 'created_at' | 'updated_at'> = {
-      name: 'Custom Routine', // TODO: Add input for name
+      name: 'Custom Routine',
       type: 'custom',
       description: `Custom routine with ${selectedExercises.length} exercises`,
       is_favorite: false,
@@ -137,114 +141,206 @@ export default function CustomRoutinePage() {
       router.push('/routine/explore');
     } catch (error) {
       console.error('Failed to save routine:', error);
-      // TODO: Show error toast
+      setSaving(false);
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-white">
-      <div className="relative flex items-center justify-between p-4 border-b bg-white">
-        <button onClick={() => router.back()} className="text-cyan-500 font-medium">Back</button>
-        <h1 className="text-lg font-semibold absolute left-1/2 transform -translate-x-1/2">Custom Routine</h1>
-        <span className="opacity-0">Back</span>
-      </div>
-      <div className="flex-1 p-4 pb-32">
+    <div className="flex flex-col min-h-screen">
+      <header className="page-header flex items-center gap-4">
+        <button 
+          onClick={() => step === 'configure' ? handleBack() : router.back()} 
+          className="icon-btn w-10 h-10"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <h1 className="page-title flex-1 text-center pr-10">
+          {step === 'select' ? 'Select Exercises' : 'Configure Sets'}
+        </h1>
+      </header>
+
+      <main className="flex-1 p-6">
         {step === 'select' && (
-          <>
-            <h2 className="text-xl font-semibold mb-4">Select Exercises</h2>
-            <div className="space-y-3">
-              {exercises.map(exercise => (
-                <button
-                  key={exercise.id}
-                  onClick={() => toggleExercise(exercise)}
-                  className={`w-full flex items-center gap-4 p-3 hover:bg-gray-50 rounded-lg transition-colors border ${selectedExercises.some(e => e.id === exercise.id) ? 'border-cyan-500 bg-cyan-50' : 'border-transparent'}`}
-                >
-                  <div className="w-14 h-14 bg-gray-900 rounded-full flex items-center justify-center text-2xl flex-shrink-0">
-                    {exercise.image}
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h3 className="font-medium text-gray-900 text-base">{exercise.name}</h3>
-                    <p className="text-gray-500 text-sm">{exercise.category}</p>
-                  </div>
-                  {selectedExercises.some(e => e.id === exercise.id) && (
-                    <span className="text-cyan-500 font-bold">Selected</span>
-                  )}
-                </button>
-              ))}
+          <div className="space-y-4 animate-fade-in-up">
+            {/* Progress indicator */}
+            <div className="flex items-center gap-2 mb-6">
+              <div className="flex-1 h-1 rounded-full bg-primary" />
+              <div className="flex-1 h-1 rounded-full bg-[rgba(255,255,255,0.1)]" />
             </div>
+
+            <p className="text-muted-foreground text-sm mb-4">
+              Select exercises to add to your routine ({selectedExercises.length} selected)
+            </p>
+
+            <div className="space-y-2 stagger-children">
+              {exercises.map(exercise => {
+                const isSelected = selectedExercises.some(e => e.id === exercise.id);
+                return (
+                  <button
+                    key={exercise.id}
+                    onClick={() => toggleExercise(exercise)}
+                    className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all duration-300 ${
+                      isSelected 
+                        ? 'bg-primary/10 border-primary' 
+                        : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] hover:bg-[rgba(255,255,255,0.06)] hover:border-[rgba(255,255,255,0.15)]'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-[rgba(255,255,255,0.05)] flex items-center justify-center text-2xl">
+                      {exercise.image}
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="font-medium text-foreground">{exercise.name}</h3>
+                      <p className="text-muted-foreground text-sm">{exercise.category}</p>
+                    </div>
+                    <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all ${
+                      isSelected 
+                        ? 'bg-primary text-white' 
+                        : 'bg-[rgba(255,255,255,0.05)] text-transparent'
+                    }`}>
+                      <Check className="w-4 h-4" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
             {selectedExercises.length > 0 && (
-              <Button onClick={handleNext} className="w-full mt-6 bg-cyan-500 hover:bg-cyan-600 text-white py-4 rounded-xl text-base font-semibold">
-                Next: Configure Sets
-              </Button>
+              <div className="sticky bottom-24 pt-4">
+                <Button onClick={handleNext} className="w-full" size="lg">
+                  Next: Configure Sets
+                  <ChevronRight className="w-5 h-5" />
+                </Button>
+              </div>
             )}
-          </>
+          </div>
         )}
+
         {step === 'configure' && (
-          <>
-            <h2 className="text-xl font-semibold mb-4">Configure Sets, Weights, Breaks</h2>
-            <div className="space-y-8">
+          <div className="space-y-6 animate-fade-in-up">
+            {/* Progress indicator */}
+            <div className="flex items-center gap-2 mb-6">
+              <div className="flex-1 h-1 rounded-full bg-primary" />
+              <div className="flex-1 h-1 rounded-full bg-primary" />
+            </div>
+
+            <p className="text-muted-foreground text-sm mb-4">
+              Configure sets, weights, and rest times for each exercise
+            </p>
+
+            <div className="space-y-4 stagger-children">
               {selectedExercises.map((exercise, exIdx) => (
-                <div key={exercise.id} className="bg-gray-50 rounded-xl p-4 shadow-sm">
-                  <div className="flex items-center gap-4 mb-2">
-                    <div className="w-12 h-12 bg-gray-900 rounded-full flex items-center justify-center text-2xl">{exercise.image}</div>
-                    <div>
-                      <div className="font-semibold text-gray-900">{exercise.name}</div>
-                      <div className="text-gray-500 text-xs">{exercise.category}</div>
+                <Card key={exercise.id}>
+                  {/* Exercise Header */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 rounded-xl bg-[rgba(255,255,255,0.05)] flex items-center justify-center text-xl">
+                      {exercise.image}
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-foreground">{exercise.name}</h3>
+                      <p className="text-muted-foreground text-xs">{exercise.category}</p>
                     </div>
                   </div>
-                  <div className="space-y-2">
+
+                  {/* Sets */}
+                  <div className="space-y-2 mb-4">
                     {exercise.sets.map((set, setIdx) => (
-                      <div key={setIdx} className="flex items-center gap-3">
-                        <span className="text-xs text-gray-500">Set {setIdx + 1}</span>
+                      <div key={setIdx} className="flex items-center gap-2 p-2 rounded-lg bg-[rgba(255,255,255,0.03)]">
+                        <span className="text-xs text-muted-foreground w-12">Set {setIdx + 1}</span>
                         <input
                           type="number"
                           value={set.weight}
                           onChange={e => updateSet(exIdx, setIdx, 'weight', Number(e.target.value))}
-                          className="w-20 px-2 py-1 rounded border border-gray-300 text-sm"
-                          placeholder="Weight (kg)"
+                          className="w-20 px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-foreground text-center text-sm focus:border-primary focus:outline-none"
+                          placeholder="kg"
                         />
+                        <span className="text-muted-foreground text-xs">kg</span>
                         <input
                           type="number"
                           value={set.reps}
                           onChange={e => updateSet(exIdx, setIdx, 'reps', Number(e.target.value))}
-                          className="w-16 px-2 py-1 rounded border border-gray-300 text-sm"
-                          placeholder="Reps"
+                          className="w-16 px-3 py-2 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-foreground text-center text-sm focus:border-primary focus:outline-none"
+                          placeholder="reps"
                         />
-                        <Button size="sm" variant="ghost" onClick={() => removeSet(exIdx, setIdx)} disabled={exercise.sets.length === 1}>
-                          Remove
-                        </Button>
+                        <span className="text-muted-foreground text-xs">reps</span>
+                        <button
+                          onClick={() => removeSet(exIdx, setIdx)}
+                          disabled={exercise.sets.length === 1}
+                          className="icon-btn w-8 h-8 ml-auto disabled:opacity-30"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
-                    <Button size="sm" variant="outline" onClick={() => addSet(exIdx)} className="mt-2">+ Add Set</Button>
                   </div>
-                  <div className="flex items-center gap-3 mt-4">
-                    <label className="text-sm text-gray-600">Break (sec):</label>
-                    <input
-                      type="number"
-                      value={exercise.breakSeconds}
-                      onChange={e => updateBreak(exIdx, Number(e.target.value))}
-                      className="w-20 px-2 py-1 rounded border border-gray-300 text-sm"
-                    />
-                    <label className="flex items-center gap-2 ml-4 text-sm">
+
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    onClick={() => addSet(exIdx)}
+                    className="w-full mb-4"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Set
+                  </Button>
+
+                  {/* Break & Warmup */}
+                  <div className="flex items-center gap-4 pt-4 border-t border-[rgba(255,255,255,0.08)]">
+                    <div className="flex items-center gap-2 flex-1">
+                      <Timer className="w-4 h-4 text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Rest:</span>
                       <input
-                        type="checkbox"
-                        checked={exercise.warmup}
-                        onChange={() => toggleWarmup(exIdx)}
-                        className="accent-cyan-500"
+                        type="number"
+                        value={exercise.breakSeconds}
+                        onChange={e => updateBreak(exIdx, Number(e.target.value))}
+                        className="w-16 px-2 py-1 rounded-lg bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-foreground text-center text-sm focus:border-primary focus:outline-none"
                       />
-                      Warmup
-                    </label>
+                      <span className="text-sm text-muted-foreground">sec</span>
+                    </div>
+                    <button
+                      onClick={() => toggleWarmup(exIdx)}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                        exercise.warmup 
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-500' 
+                          : 'bg-[rgba(255,255,255,0.03)] border-[rgba(255,255,255,0.08)] text-muted-foreground'
+                      }`}
+                    >
+                      <Flame className="w-4 h-4" />
+                      <span className="text-sm">Warmup</span>
+                    </button>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
-            <div className="flex gap-3 mt-8">
-              <Button onClick={handleBack} className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-medium">Back</Button>
-              <Button onClick={handleSave} className="flex-1 bg-cyan-500 hover:bg-cyan-600 text-white py-3 rounded-xl font-medium">Save Routine</Button>
+
+            {/* Action Buttons */}
+            <div className="sticky bottom-24 pt-4 flex gap-3">
+              <Button 
+                variant="secondary" 
+                onClick={handleBack} 
+                className="flex-1"
+                size="lg"
+              >
+                Back
+              </Button>
+              <Button 
+                onClick={handleSave} 
+                disabled={saving}
+                className="flex-1"
+                size="lg"
+              >
+                {saving ? (
+                  <span className="loading-spinner" />
+                ) : (
+                  <>
+                    Save Routine
+                    <Check className="w-5 h-5" />
+                  </>
+                )}
+              </Button>
             </div>
-          </>
+          </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

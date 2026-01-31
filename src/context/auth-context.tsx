@@ -6,6 +6,7 @@ import { auth } from '@/lib/firebase';
 
 import { useProfile } from '@/hooks/use-profile';
 import type { UserProfile } from '@/lib/firestore';
+import { initializeUserInFirestore } from '@/lib/firestore';
 import { useRoutines } from '@/hooks/use-routines';
 import type { Routine, Workout } from '@/lib/types/workout';
 import { useCompletedWorkouts, useFavoriteWorkouts } from '@/hooks/use-workout-history';
@@ -40,7 +41,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const favoriteQuery = useFavoriteWorkouts(uid || '');
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((u) => {
+    const unsubscribe = auth.onAuthStateChanged(async (u) => {
+      if (u) {
+        // Ensure user profile is initialized in Firestore
+        try {
+          await initializeUserInFirestore(u);
+        } catch (error) {
+          console.error('Error initializing user profile:', error);
+          setError(error as Error);
+        }
+      }
       setUser(u);
       setUid(u?.uid || null);
       setLoading(false);
